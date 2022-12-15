@@ -3,25 +3,15 @@ package com.lanic.myapplication
 import android.os.Bundle
 import android.util.Log
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideIn
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOut
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,50 +39,40 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
-import com.lanic.myapplication.databinding.FragmentItemListDialogListDialogItemBinding
-import com.lanic.myapplication.databinding.FragmentItemListDialogListDialogBinding
 import com.lanic.myapplication.ui.theme.MyApplicationTheme
 
 class ItemListDialogFragment : BottomSheetDialogFragment() {
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
 
     @OptIn(ExperimentalLayoutApi::class)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        WindowCompat.setDecorFitsSystemWindows(requireActivity().window, false)
-
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                var test by remember { mutableStateOf(false) }
-
                 MyApplicationTheme {
+                    var isFocusedTextField by remember { mutableStateOf(false) }
                     var fieldText by remember {
                         mutableStateOf("")
                     }
+
                     Surface(
                         modifier = Modifier
                             .height(500.dp),
@@ -101,11 +81,6 @@ class ItemListDialogFragment : BottomSheetDialogFragment() {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .windowInsetsPadding(
-                                    WindowInsets.systemBars.only(
-                                        WindowInsetsSides.Vertical
-                                    )
-                                )
                         ) {
                             LazyColumn(
                                 modifier = Modifier
@@ -115,12 +90,11 @@ class ItemListDialogFragment : BottomSheetDialogFragment() {
                                 item {
                                     BasicTextField(
                                         modifier = Modifier
-                                            .focusable(true)
                                             .fillMaxWidth()
                                             .background(color = Color.White)
                                             .padding(20.dp)
                                             .onFocusChanged {
-                                                test = it.isFocused
+                                                isFocusedTextField = it.isFocused
                                             },
                                         value = fieldText,
                                         onValueChange = {
@@ -133,21 +107,21 @@ class ItemListDialogFragment : BottomSheetDialogFragment() {
                                 }
                             }
 
-                            val aa = WindowInsets.isImeVisible && test
+                            // isFocusedTextField 가 없으면 BottomSheetDialogFragment 사용 시 AnimatedVisibility 하위 레이아웃 바로 노출됨.
+                            val isVisible = WindowInsets.isImeVisible && isFocusedTextField
 
                             AnimatedVisibility(
-                                visible = aa, modifier = Modifier
+                                visible = isVisible, modifier = Modifier
                                     .fillMaxWidth()
                                     .align(Alignment.BottomCenter)
                                     .windowInsetsPadding(
                                         WindowInsets.safeDrawing.only(
-                                            WindowInsetsSides.Vertical
+                                            WindowInsetsSides.Bottom
                                         )
-                                    )
+                                    ) // 키보드가 올라올 시 키보드의 높이만큼 패딩을 주기 위함.
                                     .height(55.dp),
                                 enter = fadeIn(),
                                 exit = slideOutVertically(
-                                    // Exits by sliding up from offset 0 to -fullHeight.
                                     targetOffsetY = { fullHeight -> +fullHeight },
                                     animationSpec = tween(
                                         durationMillis = 200,
@@ -155,7 +129,6 @@ class ItemListDialogFragment : BottomSheetDialogFragment() {
                                     )
                                 ) + fadeOut()
                             ) {
-                                Log.e("test", WindowInsets.isImeVisible.toString())
                                 Row(
                                     modifier = Modifier
                                         .background(Color(0xFFDDDFE4))
@@ -163,7 +136,7 @@ class ItemListDialogFragment : BottomSheetDialogFragment() {
                                         .align(Alignment.BottomCenter)
                                         .windowInsetsPadding(
                                             WindowInsets.safeDrawing.only(
-                                                WindowInsetsSides.Vertical
+                                                WindowInsetsSides.Bottom
                                             )
                                         )
                                         .height(55.dp)
@@ -250,9 +223,5 @@ class ItemListDialogFragment : BottomSheetDialogFragment() {
                 }
             }
         }
-
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
     }
 }
